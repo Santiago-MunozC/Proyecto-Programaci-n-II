@@ -1,5 +1,8 @@
 from shiny import App, ui
-from modulos.tab_perfil import perfil_ui
+from modulos.datos import cargar_datos
+from modulos.tab_perfil import perfil_server, perfil_ui
+
+datos = cargar_datos()
 
 app_ui = ui.page_navbar(
     ui.nav_panel("1. Perfil de la muestra", perfil_ui("perfil")),
@@ -10,6 +13,6 @@ app_ui = ui.page_navbar(
 )
 
 def server(input, output, session):
-    pass
+    perfil_server("perfil", datos=datos)
 
 app = App(app_ui, server)
