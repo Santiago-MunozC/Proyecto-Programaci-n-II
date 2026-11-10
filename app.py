@@ -1,21 +1,15 @@
-from shiny import App, ui, render
-import plotly.express as px
+from shiny import App, ui
+from modulos.tab_perfil import perfil_ui
 
-tips = px.data.tips()
-
-app_ui = ui.page_fluid(
-    ui.h2("Tablero de propinas"),
-    ui.input_slider("min_cuenta", "Monto mínimo de la cuenta (USD)",
-                    min=0, max=51, value=0),
-    ui.output_text("resumen"),
+app_ui = ui.page_navbar(
+    ui.nav_panel("1. Perfil de la muestra", perfil_ui("perfil")),
+    ui.nav_panel("2. Atención, prueba y desenlace", ui.p("En construcción.")),
+    ui.nav_panel("3. Edad y comorbilidades", ui.p("En construcción.")),
+    ui.nav_panel("4. Evolución temporal", ui.p("En construcción.")),
+    title="COVID-19 en México (2020)",
 )
 
-
 def server(input, output, session):
-    @render.text
-    def resumen():
-        datos = tips[tips["total_bill"] >= input.min_cuenta()]
-        return f"Mesas que cumplen el filtro: {len(datos)} de {len(tips)}"
-
+    pass
 
 app = App(app_ui, server)
