@@ -13,6 +13,8 @@ def perfil_ui():
             ui.value_box("Hospitalizados", ui.output_text("n_hosp")),
             ui.value_box("Positivos a COVID-19", ui.output_text("n_pos")),
             ui.value_box("Fallecidos", ui.output_text("n_fall")),
+            ui.value_box("Edad mediana", ui.output_text("edad_mediana")),
+            ui.value_box("Edad media", ui.output_text("edad_media")),
             fill=False,
         ),
         ui.card(
@@ -60,6 +62,14 @@ def perfil_server(input, output, session, datos):
     @render.text
     def n_fall():
         return con_porcentaje(int(datos["FALLECIDO"].sum()))
+
+    @render.text
+    def edad_mediana():
+        return f"{datos["AGE"].median():.0f} años"
+
+    @render.text
+    def edad_media():
+        return f"{datos["AGE"].mean():.1f} años"
 
     @render_widget
     def piramide():
