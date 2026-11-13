@@ -10,51 +10,31 @@ def perfil_ui():
         ui.p("¿Cuál es el perfil demográfico y clínico de los pacientes?"),
                 ui.div(
             ui.tags.strong("Sobre la muestra: "),
-            "los 1,000 registros son una muestra aleatoria estratificada por "
-            "tipo de paciente y sexo, no la población completa. Por eso los "
-            "porcentajes de esta pestaña describen la muestra y no representan "
-            "a México; las proporciones de sexo y de tipo de paciente, en "
-            "particular, dependen de cómo se armó la muestra.",
+            "los 1,000 registros son una muestra aleatoria estratificada por tipo de paciente y sexo, no la población completa. Por eso los porcentajes de esta pestaña describen la muestra y no representan a México; las proporciones de sexo y de tipo de paciente, en particular, dependen de cómo se armó la muestra.",
             class_="alert alert-info",
         ),
                 ui.accordion(
             ui.accordion_panel(
                 "Acerca del conjunto de datos",
                 ui.p(
-                    "Los datos provienen de la plataforma Kaggle, un repositorio "
-                    "público de conjuntos de datos, y corresponden a la información "
-                    "abierta sobre casos de COVID-19 publicada por la Secretaría de "
-                    "Salud de México en 2020. Cada fila es un paciente anónimo con "
-                    "sospecha o diagnóstico de COVID-19."
+                    "Los datos provienen de la plataforma Kaggle, un repositorio público de conjuntos de datos, y corresponden a la información abierta sobre casos de COVID-19 publicada por la Secretaría de Salud de México en 2020. Cada fila es un paciente anónimo con sospecha o diagnóstico de COVID-19."
                 ),
                 ui.p(
-                    "Para este proyecto se eliminaron 28,909 filas con datos "
-                    "desconocidos y se tomó una muestra aleatoria estratificada de "
-                    "1,000 registros. También se creó la variable FALLECIDO, que vale "
-                    "1 si el paciente tiene una fecha de fallecimiento real. El "
-                    "conjunto tiene 20 variables y ningún valor nulo."
+                    "Para este proyecto se eliminaron 28,909 filas con datos desconocidos y se tomó una muestra aleatoria estratificada de 1,000 registros. También se creó la variable FALLECIDO, que vale 1 si el paciente tiene una fecha de fallecimiento real. El conjunto tiene 20 variables y ningún valor nulo."
                 ),
                 ui.p(ui.tags.strong("Cosas importantes al interpretar los datos:")),
                 ui.tags.ul(
                     ui.tags.li(
-                        "Solo incluye personas que se hicieron la prueba o recibieron "
-                        "atención, así que la mortalidad de la muestra no representa "
-                        "la tasa real de mortalidad por COVID-19 en México."
+                        "Solo incluye personas que se hicieron la prueba o recibieron atención, así que la mortalidad de la muestra no representa la tasa real de mortalidad por COVID-19 en México."
                     ),
                     ui.tags.li(
-                        "En las variables de sí/no, 1 = Sí, 2 = No y 97 = No aplica. "
-                        "Los 97 no son datos perdidos."
+                        "En las variables de sí/no, 1 = Sí, 2 = No y 97 = No aplica. Los 97 no son datos perdidos."
                     ),
                     ui.tags.li(
-                        "Hay filas repetidas que no se eliminaron: el conjunto no "
-                        "tiene identificador de paciente y casi todas las variables "
-                        "son de dos opciones, así que perfiles idénticos aparecen "
-                        "de forma natural."
+                        "Hay filas repetidas que no se eliminaron: el conjunto no tiene identificador de paciente y casi todas las variables son de dos opciones, así que perfiles idénticos aparecen de forma natural."
                     ),
                     ui.tags.li(
-                        "Algunos grupos son muy pequeños (por ejemplo, 8 embarazadas "
-                        "y 12 pacientes con EPOC), y sus porcentajes cambian mucho "
-                        "con una sola observación."
+                        "Algunos grupos son muy pequeños (por ejemplo, 8 embarazadas y 12 pacientes con EPOC), y sus porcentajes cambian mucho con una sola observación."
                     ),
                 ),
             ),
@@ -73,24 +53,44 @@ def perfil_ui():
         ui.card(
             ui.card_header("Pirámide poblacional"),
             output_widget("piramide"),
+                        ui.p(
+                "La muestra es relativamente joven: 455 de los 1,000 pacientes (45.5%) tienen entre 18 y 39 años y solo 139 (13.9%) tienen 60 años o más. Hombres y mujeres están prácticamente en partes iguales (501 y 499), algo esperable porque la muestra se estratificó por sexo.",
+                class_="text-muted",
+            ),
         ),
         ui.card(
             ui.card_header("Prevalencia de comorbilidades"),
             output_widget("comorbilidades"),
+                        ui.p(
+                "Las comorbilidades más frecuentes son la obesidad (14.7%), la hipertensión (14.6%) y la diabetes (10.9%); el tabaquismo llega a 7.9% y las demás quedan por debajo del 4%. En total, 383 pacientes tienen al menos una comorbilidad y 617 no tienen ninguna. En los grupos pequeños, como los 12 casos de EPOC, los porcentajes son poco estables.",
+                class_="text-muted",
+            ),
         ),
         ui.layout_columns(
             ui.card(
                 ui.card_header("Tipo de paciente"),
                 output_widget("dona_tipo"),
+                                ui.p(
+                    "Alrededor de cuatro de cada cinco pacientes (815, el 81.5%) fueron ambulatorios y 185 (18.5%) fueron hospitalizados. Esta proporción depende de cómo se armó la muestra, así que no representa la de la población.",
+                    class_="text-muted",
+                ),
             ),
             ui.card(
                 ui.card_header("Resultado de la prueba"),
                 output_widget("dona_prueba"),
+                                ui.p(
+                    "372 pacientes (37.2%) dieron positivo a COVID-19 y 628 (62.8%) no. La categoría No positivo incluye resultados negativos y no concluyentes.",
+                    class_="text-muted",
+                ),
             ),
         ),
         ui.card(
             ui.card_header("Embarazo (solo entre mujeres)"),
             output_widget("embarazo"),
+                        ui.p(
+                "Solo 8 de las 499 mujeres (1.6%) estaban embarazadas. Con tan pocos casos, cualquier porcentaje calculado sobre este grupo cambia mucho con una sola observación, por lo que debe interpretarse con cuidado.",
+                class_="text-muted",
+            ),
         ),
     )
 
