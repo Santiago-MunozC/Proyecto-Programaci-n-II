@@ -1,4 +1,6 @@
 from shiny import module, render, ui
+from shinywidgets import output_widget, render_widget
+import plotly.graph_objects as go
 
 @module.ui
 def perfil_ui():
@@ -12,6 +14,10 @@ def perfil_ui():
             ui.value_box("Fallecidos", ui.output_text("n_fall")),
             fill=False,
         ),
+        ui.card(
+            ui.card_header("Pirámide poblacional"),
+            output_widget("piramide"),
+        )
     )
 
 @module.server
@@ -35,3 +41,35 @@ def perfil_server(input, output, session, datos):
     @render.text
     def n_fall():
         return con_porcentaje(int(datos["FALLECIDO"].sum()))
+
+    @render_widget
+    def piramide():
+        # Cuenta pacientes por grupo de edad y sexo
+        tabla = datos.groupby(["GRUPO_EDAD", "SEXO"], observed=False).size().unstack()
+
+        maximo = int(tabla.max().max())
+        tope = ((maximo // 50) + 1) * 50
+        marcas = list(range(-tope, tope + 1, 50))
+
+        fig = go.Figure()
+        fig.add_bar(
+            y=tabla.index.astype(str), x=-tabla["Hombre"], name="Hombre",
+            orientation="h", customdata=tabla["Hombre"],
+            hovertemplate="Hombres: %{customdata}<extra></extra>",
+        )
+        fig.add_bar(
+            y=tabla.index.astype(str), x=tabla["Mujer"], name="Mujer",
+            orientation="h",
+            hovertemplate="Mujeres: %{x}<extra></extra>",
+
+        )
+        fig.update_layout(
+            barmode="relative",
+            xaxis=dict(
+                tickvals=marcas,
+                ticktext=[str(abs(m)) for m in marcas],
+                title="Número de pacientes",
+            ),
+            yaxis_title="Grupo de edad",
+        )
+        return fig
