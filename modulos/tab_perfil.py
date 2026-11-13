@@ -17,6 +17,50 @@ def perfil_ui():
             "particular, dependen de cómo se armó la muestra.",
             class_="alert alert-info",
         ),
+                ui.accordion(
+            ui.accordion_panel(
+                "Acerca del conjunto de datos",
+                ui.p(
+                    "Los datos provienen de la plataforma Kaggle, un repositorio "
+                    "público de conjuntos de datos, y corresponden a la información "
+                    "abierta sobre casos de COVID-19 publicada por la Secretaría de "
+                    "Salud de México en 2020. Cada fila es un paciente anónimo con "
+                    "sospecha o diagnóstico de COVID-19."
+                ),
+                ui.p(
+                    "Para este proyecto se eliminaron 28,909 filas con datos "
+                    "desconocidos y se tomó una muestra aleatoria estratificada de "
+                    "1,000 registros. También se creó la variable FALLECIDO, que vale "
+                    "1 si el paciente tiene una fecha de fallecimiento real. El "
+                    "conjunto tiene 20 variables y ningún valor nulo."
+                ),
+                ui.p(ui.tags.strong("Cosas importantes al interpretar los datos:")),
+                ui.tags.ul(
+                    ui.tags.li(
+                        "Solo incluye personas que se hicieron la prueba o recibieron "
+                        "atención, así que la mortalidad de la muestra no representa "
+                        "la tasa real de mortalidad por COVID-19 en México."
+                    ),
+                    ui.tags.li(
+                        "En las variables de sí/no, 1 = Sí, 2 = No y 97 = No aplica. "
+                        "Los 97 no son datos perdidos."
+                    ),
+                    ui.tags.li(
+                        "Hay filas repetidas que no se eliminaron: el conjunto no "
+                        "tiene identificador de paciente y casi todas las variables "
+                        "son de dos opciones, así que perfiles idénticos aparecen "
+                        "de forma natural."
+                    ),
+                    ui.tags.li(
+                        "Algunos grupos son muy pequeños (por ejemplo, 8 embarazadas "
+                        "y 12 pacientes con EPOC), y sus porcentajes cambian mucho "
+                        "con una sola observación."
+                    ),
+                ),
+            ),
+            open=False,
+            id="acerca",
+        ),
         ui.layout_columns(
             ui.value_box("Pacientes", ui.output_text("n_total")),
             ui.value_box("Hospitalizados", ui.output_text("n_hosp")),
