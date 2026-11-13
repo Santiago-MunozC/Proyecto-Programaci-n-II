@@ -33,6 +33,10 @@ def perfil_ui():
                 output_widget("dona_prueba"),
             ),
         ),
+        ui.card(
+            ui.card_header("Embarazo (solo entre mujeres)"),
+            output_widget("embarazo"),
+        ),
     )
 
 @module.server
@@ -139,3 +143,23 @@ def perfil_server(input, output, session, datos):
     @render_widget
     def dona_prueba():
         return dona ("PRUEBA")
+
+    @render_widget
+    def embarazo():
+        mujeres = datos[datos["SEXO"] == "Mujer"]
+        etiquetas = mujeres["PREGNANT"].map({1: "Embarazada", 2: "No embarazada"})
+        conteos = etiquetas.value_counts().reindex(["Embarazada", "No embarazada"])
+
+        fig = go.Figure(
+            go.Bar(
+                x=list(conteos.index),
+                y=list(conteos.values),
+                text=[f"{n} ({n / len(mujeres):.1%})" for n in conteos.values],
+                textposition="outside",
+            )
+        )
+        fig.update_layout(
+            yaxis_title= "Número de mujeres",
+            yaxis_range=[0, conteos.max() * 1.15],
+        )
+        return fig
