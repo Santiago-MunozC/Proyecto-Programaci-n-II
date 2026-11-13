@@ -1,3 +1,4 @@
+from xarray.core.dtypes import get_fill_value
 from shiny import module, reactive, render, ui
 from shinywidgets import output_widget, render_widget
 import plotly.graph_objects as go
@@ -153,8 +154,14 @@ def perfil_server(input, output, session, datos):
 
     @render_widget
     def piramide():
+        df = datos_filtrados()
         # Cuenta pacientes por grupo de edad y sexo
-        tabla = datos.groupby(["GRUPO_EDAD", "SEXO"], observed=False).size().unstack()
+        tabla = (
+            df.groupby(["GRUPO_EDAD", "SEXO"], observed=False)
+            .size()
+            .unstack()
+            .reindex(columns=["Hombre", "Mujer"], fill_value=0)
+        )
 
         maximo = int(tabla.max().max())
         tope = ((maximo // 50) + 1) * 50
@@ -185,9 +192,10 @@ def perfil_server(input, output, session, datos):
 
     @render_widget
     def comorbilidades():
+        df = datos_filtrados()
         # Cuenta cuántos pacientes tienen cada comorbilidad
         conteos = {
-            nombre: int((datos[columna] == 1). sum())
+            nombre: int((df[columna] == 1). sum())
             for columna, nombre in COMORBILIDADES.items()
         }
 
@@ -213,7 +221,7 @@ def perfil_server(input, output, session, datos):
 
     def dona(columna):
         # Cuenta cuántos pacientes hay en cada categoría de la columna
-        conteos = datos[columna].value_counts()
+        conteos = datos_filtrados()[columna].value_counts()
         fig = go.Figure(
             go.Pie(
                 labels=list(conteos.index),
@@ -236,9 +244,22 @@ def perfil_server(input, output, session, datos):
 
     @render_widget
     def embarazo():
-        mujeres = datos[datos["SEXO"] == "Mujer"]
+        df = datos_filtrados()
+        mujeres = df[df["SEXO"] == "Mujer"]
+
+        if len(mujeres) == 0:
+            fig = go.Figure()
+            fig.add_annotation(
+                text="No hay mujeres con los filtros elegidos",
+                showarrow=False, font=dict(size=16),
+            )
+            fig.update_layout(xaxis_visible=False, yaxis_visible=False)
+            return fig
+
         etiquetas = mujeres["PREGNANT"].map({1: "Embarazada", 2: "No embarazada"})
-        conteos = etiquetas.value_counts().reindex(["Embarazada", "No embarazada"])
+        conteos = etiquetas.value_counts().reindex(
+            ["Embarazada", "No embarazada"], fill_value=0
+        )
 
         fig = go.Figure(
             go.Bar(
