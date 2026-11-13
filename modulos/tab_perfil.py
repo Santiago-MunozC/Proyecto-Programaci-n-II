@@ -1,4 +1,4 @@
-from shiny import module, render, ui
+from shiny import module, reactive, render, ui
 from shinywidgets import output_widget, render_widget
 import plotly.graph_objects as go
 from modulos.datos import COMORBILIDADES
@@ -40,6 +40,20 @@ def perfil_ui():
             ),
             open=False,
             id="acerca",
+        ),
+                ui.card(
+            ui.card_header("Filtros"),
+            ui.layout_columns(
+                ui.input_select("sexo", "Sexo", ["Todos", "Mujer", "Hombre"]),
+                ui.input_select(
+                    "tipo", "Tipo de paciente",
+                    ["Todos", "Ambulatorio", "Hospitalizado"],
+                ),
+            ),
+            ui.p(
+                "Los filtros actualizan las tarjetas y los gráficos. Los comentarios en gris describen la muestra completa.",
+                class_="text-muted",
+            ),
         ),
         ui.layout_columns(
             ui.value_box("Pacientes", ui.output_text("n_total")),
@@ -97,32 +111,45 @@ def perfil_ui():
 @module.server
 def perfil_server(input, output, session, datos):
 
-    def con_porcentaje(n):
+    @reactive.calc
+    def datos_filtrados():
+        # Aplica los filtros elegidos por el usuario a la tabla completa
+        df = datos
+        if input.sexo() != "Todos":
+            df = df[df["SEXO"] == input.sexo()]
+        if input.tipo() != "Todos":
+            df = df[df["TIPO_PACIENTE"] == input.tipo()]
+        return df
+
+    def con_porcentaje(n, total):
         return f"{n:,} ({n / len(datos):.1%})"
 
     @render.text
     def n_total():
-        return f"{len(datos):,}"
+        return f"{len(datos_filtrados()):,}"
 
     @render.text
     def n_hosp():
-        return con_porcentaje(int((datos["PATIENT_TYPE"] == 2).sum()))
+        df = datos_filtrados()
+        return con_porcentaje(int((df["PATIENT_TYPE"] == 2).sum()), len(df))
 
     @render.text
     def n_pos():
-        return con_porcentaje(int(datos["COVID_POSITIVO"].sum()))
+        df = datos_filtrados()
+        return con_porcentaje(int(df["COVID_POSITIVO"].sum()), len (df))
 
     @render.text
     def n_fall():
-        return con_porcentaje(int(datos["FALLECIDO"].sum()))
+        df = datos_filtrados()
+        return con_porcentaje(int(df["FALLECIDO"].sum()), len(df))
 
     @render.text
     def edad_mediana():
-        return f"{datos["AGE"].median():.0f} años"
+        return f"{datos_filtrados()["AGE"].median():.0f} años"
 
     @render.text
     def edad_media():
-        return f"{datos["AGE"].mean():.1f} años"
+        return f"{datos_filtrados()["AGE"].mean():.1f} años"
 
     @render_widget
     def piramide():
