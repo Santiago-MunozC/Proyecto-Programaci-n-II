@@ -1,6 +1,7 @@
 from shiny import module, render, ui
 from shinywidgets import output_widget, render_widget
 import plotly.graph_objects as go
+from modulos.datos import COMORBILIDADES
 
 @module.ui
 def perfil_ui():
@@ -17,7 +18,11 @@ def perfil_ui():
         ui.card(
             ui.card_header("Pirámide poblacional"),
             output_widget("piramide"),
-        )
+        ),
+        ui.card(
+            ui.card_header("Prevalencia de comorbilidades"),
+            output_widget("comorbilidades"),
+        ),
     )
 
 @module.server
@@ -71,5 +76,33 @@ def perfil_server(input, output, session, datos):
                 title="Número de pacientes",
             ),
             yaxis_title="Grupo de edad",
+        )
+        return fig
+
+    @render_widget
+    def comorbilidades():
+        # Cuenta cuántos pacientes tienen cada comorbilidad
+        conteos = {
+            nombre: int((datos[columna] == 1). sum())
+            for columna, nombre in COMORBILIDADES.items()
+        }
+
+        orden = sorted(conteos, key=conteos.get)
+        porcentajes = [conteos[n] / len(datos) * 100 for n in orden]
+
+        fig = go.Figure(
+            go.Bar(
+                x=porcentajes,
+                y=orden,
+                orientation="h",
+                text=[f"{conteos[n] / len(datos):.1%} (n = {conteos[n]})" for n in orden],
+                textposition="outside",
+                hoverinfo="skip",
+            )
+        )
+        fig.update_layout(
+            xaxis_title="% de pacientes",
+            xaxis_range=[0, max(porcentajes) * 1.4],
+            margin=dict(l=180),
         )
         return fig
