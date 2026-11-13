@@ -8,6 +8,15 @@ def perfil_ui():
     return ui.div(
         ui.h4("Perfil de la muestra"),
         ui.p("¿Cuál es el perfil demográfico y clínico de los pacientes?"),
+                ui.div(
+            ui.tags.strong("Sobre la muestra: "),
+            "los 1,000 registros son una muestra aleatoria estratificada por "
+            "tipo de paciente y sexo, no la población completa. Por eso los "
+            "porcentajes de esta pestaña describen la muestra y no representan "
+            "a México; las proporciones de sexo y de tipo de paciente, en "
+            "particular, dependen de cómo se armó la muestra.",
+            class_="alert alert-info",
+        ),
         ui.layout_columns(
             ui.value_box("Pacientes", ui.output_text("n_total")),
             ui.value_box("Hospitalizados", ui.output_text("n_hosp")),
