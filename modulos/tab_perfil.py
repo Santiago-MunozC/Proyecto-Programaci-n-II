@@ -23,6 +23,16 @@ def perfil_ui():
             ui.card_header("Prevalencia de comorbilidades"),
             output_widget("comorbilidades"),
         ),
+        ui.layout_columns(
+            ui.card(
+                ui.card_header("Tipo de paciente"),
+                output_widget("dona_tipo"),
+            ),
+            ui.card(
+                ui.card_header("Resultado de la prueba"),
+                output_widget("dona_prueba"),
+            ),
+        ),
     )
 
 @module.server
@@ -106,3 +116,26 @@ def perfil_server(input, output, session, datos):
             margin=dict(l=180),
         )
         return fig
+
+    def dona(columna):
+        # Cuenta cuántos pacientes hay en cada categoría de la columna
+        conteos = datos[columna].value_counts()
+        fig = go.Figure(
+            go.Pie(
+                labels=list(conteos.index),
+                values=list(conteos.values),
+                hole=0.5,
+                textinfo="value+percent",
+                sort=False,
+            )
+        )
+        fig.update_layout(margin=dict(t=20, b=20, l=20, r=20))
+        return fig
+
+    @render_widget
+    def dona_tipo():
+        return dona("TIPO_PACIENTE")
+
+    @render_widget
+    def dona_prueba():
+        return dona ("PRUEBA")
