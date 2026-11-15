@@ -1,4 +1,6 @@
 from shiny import module, ui
+from shinywidgets import output_widget, render_widget
+import plotly.express as px
 
 @module.ui
 def atencion_ui():
@@ -8,8 +10,51 @@ def atencion_ui():
             "¿Cómo cambia la proporción de fallecidos según el tipo de atención, el resultado de la prueba y el sexo, y cómo se asocia la gravedad clínica con el fallecimiento?",
             class_="text-muted",
         ),
+        ui.card(
+            ui.card_header("Fallecidos según tipo de atención, prueba y sexo"),
+            output_widget("barras_tipo_prueba"),
+            ui.p(
+                "Cada barra muestra el porcentaje de fallecidos y, entre paréntesis, los fallecidos sobre el total de pacientes del grupo. Los grupos con pocos pacientes dan porcentajes poco estables.",
+                class_="text-muted",
+            ),
+        ),
     )
 
 @module.server
 def atencion_server(input, output, session, datos):
-    pass
+    @render_widget
+    def barras_tipo_prueba():
+        tabla = (
+            datos.groupby(["SEXO", "TIPO_PACIENTE", "PRUEBA"], observed=False)["FALLECIDO"]
+            .agg(fallecidos="sum", total="count")
+            .reset_index()
+        )
+        tabla["porcentaje"] = tabla["fallecidos"] / tabla["total"] * 100
+        tabla["texto"] = tabla.apply(
+            lambda f: f"{f["porcentaje"]:.1f}% ({int(f["fallecidos"])} de {int(f["total"])})",
+            axis=1,
+        )
+
+        fig = px.bar(
+            tabla,
+            x="TIPO_PACIENTE",
+            y="porcentaje",
+            color="PRUEBA",
+            barmode="group",
+            facet_col="SEXO",
+            text="texto",
+            category_orders={
+                "SEXO": ["Mujer", "Hombre"],
+                "TIPO_PACIENTE": ["Ambulatorio", "Hospitalizado"],
+                "PRUEBA": ["No positivo", "Positivo"],
+            },
+            labels={
+                "porcentaje": "% de fallecidos",
+                "TIPO_PACIENTE": "Tipo de paciente",
+                "PRUEBA": "Resultado de la prueba",
+            },
+        )
+        fig.update_traces(textposition="outside", cliponaxis=False)
+        fig.update_yaxes(range=[0, tabla["porcentaje"].max() * 1.3])
+        fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
+        return fig
