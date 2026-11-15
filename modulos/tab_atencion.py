@@ -26,6 +26,13 @@ def atencion_ui():
                 class_="text-muted",
             ),
         ),
+        ui.card(
+            ui.card_header("Fallecidas entre embarazadas y no embarazadas"),
+            output_widget("barras_embarazo"),
+            ui.p("Solo se incluyen mujeres, porque en los hombres la variable no aplica. Hay apenas 8 embarazadas en la muestra, así que este resultado no permite concluir si el embarazo se asocia con el fallecimiento",
+            class_="text-muted",
+            ),
+        ),
     )
 
 @module.server
@@ -60,6 +67,7 @@ def atencion_server(input, output, session, datos):
                 "porcentaje": "% de fallecidos",
                 "TIPO_PACIENTE": "Tipo de paciente",
                 "PRUEBA": "Resultado de la prueba",
+                "SEXO": "Sexo",
             },
         )
         fig.update_traces(textposition="outside", cliponaxis=False)
@@ -102,4 +110,34 @@ def atencion_server(input, output, session, datos):
         )
         fig.update_traces(textposition="outside", cliponaxis=False)
         fig.update_yaxes(range=[0, tabla["porcentaje"].max() * 1.3])
+        return fig
+
+    @render_widget
+    def barras_embarazo():
+        mujeres = datos[datos["SEXO"] == "Mujer"].copy()
+        mujeres["EMBARAZO"] = mujeres["PREGNANT"].map(
+            {1: "Embarazada", 2: "No embarazada"}
+        )
+
+        tabla = (
+            mujeres.groupby("EMBARAZO", observed=False)["FALLECIDO"]
+            .agg(fallecidos="sum", total="count")
+            .reset_index()
+        )
+        tabla["porcentaje"] = tabla["fallecidos"] / tabla["total"] * 100
+        tabla["texto"] = tabla.apply(
+            lambda f: f"{f['porcentaje']:.1f}% ({int(f['fallecidos'])} de {int(f['total'])})",
+            axis=1,
+        )
+
+        fig = px.bar(
+            tabla,
+            x="EMBARAZO",
+            y="porcentaje",
+            text="texto",
+            category_orders={"EMBARAZO": ["No embarazada", "Embarazada"]},
+            labels={"porcentaje": "% de fallecidas", "EMBARAZO": "Estado"},
+        )
+        fig.update_traces(textposition="outside", cliponaxis=False)
+        fig.update_yaxes(range=[0, max(tabla["porcentaje"].max() * 1.3, 5)])
         return fig
