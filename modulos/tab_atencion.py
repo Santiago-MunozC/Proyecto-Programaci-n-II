@@ -1,4 +1,5 @@
-from shiny import module, ui
+from shiny import module, reactive, ui
+from modulos.datos import ETIQUETAS_EDAD
 from shinywidgets import output_widget, render_widget
 import plotly.express as px
 import plotly.graph_objects as go
@@ -15,6 +16,13 @@ def atencion_ui():
             ui.tags.strong("Ojo con los grupos pequeños: "),
             "en toda la muestra hay solo 69 fallecidos (4 entre los 815 pacientes ambulatorios y ninguno entre las 8 embarazadas). Con tan pocos casos, un porcentaje puede cambiar mucho por una sola persona, por eso cada barra muestra también el número de pacientes. Además, estos porcentajes describen la muestra y no son tasas de mortalidad en México.",
             class_="alert alert-warning",
+        ),
+        ui.card(
+            ui.card_header("Filtro"),
+            ui.input_select("edad", "Grupo de edad", ["Todos"] + ETIQUETAS_EDAD),
+            ui.p("El filtro actualiza los gráficos. Los comentarios en gris describen la muestra completa.",
+                class_="text-muted",
+            ),
         ),
         ui.card(
             ui.card_header("Fallecidos según tipo de atención, prueba y sexo"),
@@ -62,10 +70,16 @@ def atencion_ui():
 
 @module.server
 def atencion_server(input, output, session, datos):
+    @reactive.calc
+    def datos_filtrados():
+        # Si se elige un grupo de edad, deja solo esos pacientes
+        if input.edad() == "Todos":
+            return datos
+        return datos[datos["GRUPO_EDAD"] == input.edad()]
     @render_widget
     def barras_tipo_prueba():
         tabla = (
-            datos.groupby(["SEXO", "TIPO_PACIENTE", "PRUEBA"], observed=False)["FALLECIDO"]
+            datos_filtrados().groupby(["SEXO", "TIPO_PACIENTE", "PRUEBA"], observed=False)["FALLECIDO"]
             .agg(fallecidos="sum", total="count")
             .reset_index()
         )
@@ -96,13 +110,13 @@ def atencion_server(input, output, session, datos):
             },
         )
         fig.update_traces(textposition="outside", cliponaxis=False)
-        fig.update_yaxes(range=[0, tabla["porcentaje"].max() * 1.3])
+        fig.update_yaxes(range=[0, max(tabla["porcentaje"].max() * 1.3, 5)])
         fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
         return fig
 
     @render_widget
     def barras_neumonia():
-        df = datos.copy()
+        df = datos_filtrados().copy()
         df["NEUMONIA"] = df["PNEUMONIA"].map({1: "Con neumonía", 2: "Sin neumonía"})
 
         tabla = (
@@ -134,12 +148,13 @@ def atencion_server(input, output, session, datos):
             },
         )
         fig.update_traces(textposition="outside", cliponaxis=False)
-        fig.update_yaxes(range=[0, tabla["porcentaje"].max() * 1.3])
+        fig.update_yaxes(range=[0, max(tabla["porcentaje"].max() * 1.3, 5)])
         return fig
 
     @render_widget
     def barras_embarazo():
-        mujeres = datos[datos["SEXO"] == "Mujer"].copy()
+        df = datos_filtrados()
+        mujeres = df[df["SEXO"] == "Mujer"].copy()
         mujeres["EMBARAZO"] = mujeres["PREGNANT"].map(
             {1: "Embarazada", 2: "No embarazada"}
         )
@@ -169,7 +184,7 @@ def atencion_server(input, output, session, datos):
 
     @render_widget
     def sankey():
-        df = datos.copy()
+        df = datos_filtrados().copy()
         df["Tipo"] = df["TIPO_PACIENTE"]
         df["UCI"] = df["ICU"].map(
             {
