@@ -18,6 +18,14 @@ def atencion_ui():
                 class_="text-muted",
             ),
         ),
+        ui.card(
+            ui.card_header("Fallecidos con y sin neumonía, según la prueba"),
+            output_widget("barras_neumonia"),
+            ui.p(
+                "Cada barra muestra el porcentaje de fallecidos y, entre paréntesis, los fallecidos sobre el total de pacientes del grupo.",
+                class_="text-muted",
+            ),
+        ),
     )
 
 @module.server
@@ -57,4 +65,41 @@ def atencion_server(input, output, session, datos):
         fig.update_traces(textposition="outside", cliponaxis=False)
         fig.update_yaxes(range=[0, tabla["porcentaje"].max() * 1.3])
         fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
+        return fig
+
+    @render_widget
+    def barras_neumonia():
+        df = datos.copy()
+        df["NEUMONIA"] = df["PNEUMONIA"].map({1: "Con neumonía", 2: "Sin neumonía"})
+
+        tabla = (
+            df.groupby(["NEUMONIA", "PRUEBA"], observed=False)["FALLECIDO"]
+            .agg(fallecidos="sum", total="count")
+            .reset_index()
+        )
+        tabla["porcentaje"] = tabla["fallecidos"] / tabla["total"] * 100
+        tabla["texto"] = tabla.apply(
+            lambda f: f"{f["porcentaje"]:.1f}% ({int(f["fallecidos"])} de {int(f["total"])})",
+            axis=1,
+        )
+
+        fig = px.bar(
+            tabla,
+            x="NEUMONIA",
+            y="porcentaje",
+            color="PRUEBA",
+            barmode="group",
+            text="texto",
+            category_orders={
+                "NEUMONIA": ["Sin neumonía", "Con neumonía"],
+                "PRUEBA": ["No positivo", "Positivo"],
+            },
+            labels={
+                "porcentaje": "% de fallecidos",
+                "NEUMONIA": "Neumonía",
+                "PRUEBA": "Resultado de la prueba",
+            },
+        )
+        fig.update_traces(textposition="outside", cliponaxis=False)
+        fig.update_yaxes(range=[0, tabla["porcentaje"].max() * 1.3])
         return fig
