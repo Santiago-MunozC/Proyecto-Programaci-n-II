@@ -1,4 +1,4 @@
-from shiny import module, reactive, ui
+from shiny import module, reactive, render, ui
 from modulos.datos import ETIQUETAS_EDAD
 from shinywidgets import output_widget, render_widget
 import plotly.express as px
@@ -24,14 +24,25 @@ def atencion_ui():
                 class_="text-muted",
             ),
         ),
+        ui.layout_columns(
+            ui.value_box(
+                "Fallecidos entre ambulatorios", ui.output_text("f_ambulatorios")
+            ),
+            ui.value_box(
+                "Fallecidos entre hospitalizados", ui.output_text("f_hospitalizados")
+            ),
+            ui.value_box(
+                "Fallecidos entre pacientes con neumonía", ui.output_text("f_neumonia")
+            ),
+            fill=False,
+        ),
         ui.card(
             ui.card_header("Fallecidos según tipo de atención, prueba y sexo"),
             output_widget("barras_tipo_prueba"),
                         ui.p("Entre los ambulatorios casi no hay fallecimientos: solo 4 de 815, todos hombres con prueba positiva (4 de 142, el 2.8%); ninguna de las 424 mujeres ambulatorias falleció. Entre los hospitalizados el porcentaje es mucho más alto (35.1% en total) y, en ambos sexos, mayor entre los positivos que entre los no positivos: 43.6% contra 22.2% en mujeres y 39.3% contra 32.7% en hombres. Los grupos de hospitalizados tienen entre 36 y 61 pacientes, así que las diferencias entre ellos deben tomarse con cautela.",
                 class_="text-muted",
             ),
-            ui.p(
-                "Cada barra muestra el porcentaje de fallecidos y, entre paréntesis, los fallecidos sobre el total de pacientes del grupo. Los grupos con pocos pacientes dan porcentajes poco estables.",
+            ui.p("Cada barra muestra el porcentaje de fallecidos y, entre paréntesis, los fallecidos sobre el total de pacientes del grupo. Los grupos con pocos pacientes dan porcentajes poco estables. La categoría No positivo incluye a los pacientes sin prueba positiva: negativos y resultados no concluyentes.",
                 class_="text-muted",
             ),
         ),
@@ -41,8 +52,7 @@ def atencion_ui():
                         ui.p("Los pacientes con neumonía tienen un porcentaje de fallecidos mucho mayor que los que no la tienen: 37.0% (50 de 135) contra 2.2% (19 de 865) en total. La diferencia se mantiene en ambos resultados de la prueba: 27.9% contra 1.2% entre los no positivos y 44.6% contra 4.0% entre los positivos. Esto es una asociación en la muestra y no demuestra que la neumonía sea la causa del fallecimiento.",
                 class_="text-muted",
             ),
-            ui.p(
-                "Cada barra muestra el porcentaje de fallecidos y, entre paréntesis, los fallecidos sobre el total de pacientes del grupo.",
+            ui.p("Cada barra muestra el porcentaje de fallecidos y, entre paréntesis, los fallecidos sobre el total de pacientes del grupo. La categoría No positivo incluye a los pacientes sin prueba positiva: negativos y resultados no concluyentes.",
                 class_="text-muted",
             ),
         ),
@@ -72,10 +82,30 @@ def atencion_ui():
 def atencion_server(input, output, session, datos):
     @reactive.calc
     def datos_filtrados():
-        # Si se elige un grupo de edad, deja solo esos pacientes
         if input.edad() == "Todos":
             return datos
         return datos[datos["GRUPO_EDAD"] == input.edad()]
+    def texto_fallecidos(df):
+        total = len(df)
+        if total == 0:
+            return "Sin pacientes"
+        fallecidos = int(df["FALLECIDO"].sum())
+        return f"{fallecidos} de {total} ({fallecidos / total:.1%})"
+
+    @render.text
+    def f_ambulatorios():
+        df = datos_filtrados()
+        return texto_fallecidos(df[df["PATIENT_TYPE"] == 1])
+
+    @render.text
+    def f_hospitalizados():
+        df = datos_filtrados()
+        return texto_fallecidos(df[df["PATIENT_TYPE"] == 2])
+
+    @render.text
+    def f_neumonia():
+        df = datos_filtrados()
+        return texto_fallecidos(df[df["PNEUMONIA"] == 1])
     @render_widget
     def barras_tipo_prueba():
         tabla = (
