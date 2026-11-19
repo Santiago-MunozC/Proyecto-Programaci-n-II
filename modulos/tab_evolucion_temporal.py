@@ -284,3 +284,125 @@ def _fig_burbujas(df, meses):
         )],
     )
     return fig
+
+
+@module.ui
+def evolucion_temporal_ui():
+    return ui.div(
+        ui.h4("4. Evolución temporal"),
+        ui.p("¿Cómo se distribuyeron los fallecimientos por mes y qué perfil tenían los fallecidos en cada mes?"),
+        ui.div(
+            ui.tags.strong("Qué se puede (y qué no) ver aquí: "),
+            "el conjunto de datos solo trae una fecha, la de fallecimiento (DATE_DIED); no incluye fecha de inicio de síntomas, de ingreso ni de la prueba. Por eso esta pestaña muestra cuándo murieron los pacientes de la muestra, no una curva de contagios. Además, solo 69 de los 1,000 pacientes fallecieron: hay meses con 1 o 4 fallecidos y, si se aplican filtros, los grupos se vuelven aún más pequeños. Los porcentajes de cada mes deben leerse junto con su n (pasa el cursor sobre los gráficos). Sirve para ver el patrón general, no para estimar la evolución real de la epidemia en México.",
+            class_="alert alert-info",
+        ),
+        ui.card(
+            ui.card_header("Filtros"),
+            ui.layout_columns(
+                ui.input_select("sexo", "Sexo", ["Todos", "Mujer", "Hombre"]),
+                ui.input_select(
+                    "tipo", "Tipo de paciente",
+                    ["Todos", "Ambulatorio", "Hospitalizado"],
+                ),
+                ui.input_select(
+                    "prueba", "Resultado de la prueba",
+                    ["Todos", "Positivo", "No positivo"],
+                ),
+            ),
+            ui.input_checkbox_group(
+                "edades", "Grupo de edad",
+                ETIQUETAS_EDAD, selected=ETIQUETAS_EDAD, inline=True,
+            ),
+            ui.input_checkbox_group(
+                "comorb", "Comorbilidades (sin marcar ninguna, no se filtra)",
+                COMORBILIDADES, inline=True,
+            ),
+            ui.input_radio_buttons(
+                "modo_comorb", "Con las comorbilidades marcadas, mostrar fallecidos que tengan",
+                {"cualquiera": "al menos una de ellas", "todas": "todas ellas"},
+                inline=True,
+            ),
+            ui.p(
+                "Los filtros actualizan las tarjetas y los gráficos. Los comentarios en gris describen la muestra completa.",
+                class_="text-muted",
+            ),
+        ),
+        ui.layout_columns(
+            ui.value_box("Fallecidos", ui.output_text("n_fall")),
+            ui.value_box("Mes con más fallecimientos", ui.output_text("mes_pico")),
+            ui.value_box("Edad mediana", ui.output_text("edad_mediana")),
+            ui.value_box("Con alguna comorbilidad", ui.output_text("n_comorb")),
+            fill=False,
+        ),
+        ui.card(
+            ui.card_header("Fallecimientos en el tiempo y total acumulado"),
+            ui.input_radio_buttons(
+                "periodo", "Agrupar por",
+                {"mes": "Mes", "semana": "Semana"}, inline=True,
+            ),
+            ui.p(
+                ui.tags.strong("Cómo leerlo: "),
+                "las barras rojas son los fallecimientos de cada periodo; la línea azul suma todos los anteriores (eje derecho). La flecha marca el periodo con más fallecimientos.",
+                class_="text-muted",
+            ),
+            output_widget("serie"),
+            ui.p(
+                "Los 69 fallecimientos de la muestra ocurren entre el 26 de marzo y el 3 de septiembre de 2020, pero casi todos se concentran en tres meses: 20 en mayo, 22 en junio y 20 en julio (62 de 69, el 89.9%). Antes hay solo 5 (1 en marzo y 4 en abril) y después solo 2 (1 en agosto y 1 en septiembre). Al agrupar por semana el patrón es irregular; la semana con más fallecimientos es la del 8 de junio, con 11.",
+                class_="text-muted",
+            ),
+        ),
+        ui.card(
+            ui.card_header("Perfil de los fallecidos en cada mes (barras apiladas)"),
+            ui.layout_columns(
+                ui.input_select("apilar", "Dividir cada barra según", APILAR),
+                ui.input_radio_buttons(
+                    "como", "Mostrar",
+                    {"numero": "Número de fallecidos", "porcentaje": "Porcentaje del mes"},
+                    inline=True,
+                ),
+            ),
+            ui.p(
+                ui.tags.strong("Cómo leerlo: "),
+                "cada barra es un mes y sus colores muestran cómo se reparten los fallecidos de ese mes. El n sobre la barra es el total de fallecidos del mes: en Porcentaje, cada barra suma 100% sin importar cuántos casos tenga.",
+                class_="text-muted",
+            ),
+            output_widget("apiladas"),
+            ui.p(
+                "Casi todos los fallecidos estaban hospitalizados (65 de 69, el 94.2%); solo 4 fueron ambulatorios (1 en junio, 2 en julio y 1 en septiembre). Junio es el mes con más hombres (17 de 22, el 77.3%), mientras que en mayo y julio son 12 de 20 (60%). Entre los fallecidos de julio, 17 de 20 (85%) dieron positivo, frente a 50% en mayo y 54.5% en junio; la categoría No positivo incluye resultados negativos y no concluyentes. En el porcentaje, marzo, agosto y septiembre (1 fallecido cada uno) dan barras de 0% o 100% que no significan nada.",
+                class_="text-muted",
+            ),
+        ),
+        ui.card(
+            ui.card_header("¿Cambió el perfil de un mes a otro? (puntos con líneas)"),
+            ui.input_select("indicador", "Indicador", INDICADORES),
+            ui.p(
+                ui.tags.strong("Cómo leerlo: "),
+                "cada punto resume a los fallecidos de un mes con el indicador elegido. La línea punteada es el valor de todos los meses juntos, para comparar si un mes está por encima o por debajo. Los puntos grises tienen menos de 5 fallecidos.",
+                class_="text-muted",
+            ),
+            output_widget("perfil"),
+            ui.p(
+                "El tamaño de cada punto es proporcional al número de fallecidos del mes. En los tres meses con más casos el perfil es parecido: la edad mediana es de 63 años en mayo, 58.5 en junio y 65 en julio, y el porcentaje con al menos una comorbilidad es de 70%, 72.7% y 75%. En el total, 50 de los 69 fallecidos (72.5%) tenían alguna comorbilidad. Los puntos de marzo, agosto y septiembre (1 fallecido) y abril (4) no permiten comparar.",
+                class_="text-muted",
+            ),
+        ),
+        ui.card(
+            ui.card_header("Comorbilidades de los fallecidos mes a mes (gráfico de burbujas animado)"),
+            ui.p(
+                ui.tags.strong("Cómo leerlo: "),
+                "cada burbuja es una comorbilidad y su tamaño es el número de fallecidos que la tienen. Más a la derecha significa que más fallecidos la tienen; más arriba, que esos fallecidos son mayores. Presiona Reproducir, o mueve la barra, para ver cómo cambia el conjunto de fallecidos acumulados mes a mes. Una burbuja puede tener fallecidos con varias comorbilidades a la vez, así que los porcentajes no suman 100%.",
+                class_="text-muted",
+            ),
+            output_widget("burbujas"),
+            ui.p(
+                "Al final, la hipertensión es la comorbilidad más frecuente entre los fallecidos (30 de 69, el 43.5%), seguida de la diabetes (22, 31.9%) y la obesidad (19, 27.5%). La obesidad parte muy alta en los primeros meses (1 de 1 en marzo, 3 de 5 en abril), pero con tan pocos fallecidos esos valores se mueven mucho por azar. Las demás comorbilidades tienen entre 1 y 6 casos y el asma no aparece, así que sus burbujas son diminutas o no se ven.",
+                class_="text-muted",
+            ),
+        ),
+        ui.p(
+            "Fuente: datos abiertos de casos de COVID-19 de la Secretaría de Salud de México (2020), obtenidos de Kaggle; muestra aleatoria estratificada de 1,000 registros. Fallecido = paciente con fecha de fallecimiento real.",
+            class_="text-muted small",
+        ),
+    )
+
+
