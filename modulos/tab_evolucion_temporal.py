@@ -254,36 +254,7 @@ def _fig_burbujas(df, meses):
         text="Tamaño de la burbuja = número de fallecidos con esa comorbilidad",
         font=dict(size=11, color="gray"),
     )
-    fig.update_layout(
-        xaxis=dict(title="% de los fallecidos (acumulados) que tienen la comorbilidad",
-                   range=[0, x_max]),
-        yaxis=dict(title="Edad mediana de esos fallecidos (años)", range=[y_min, y_max]),
-        showlegend=False,
-        updatemenus=[dict(
-            type="buttons", showactive=False, x=0.1, y=0, xanchor="right", yanchor="top",
-            pad=dict(r=10, t=87),
-            buttons=[
-                dict(label="▶ Reproducir", method="animate",
-                     args=[None, {"frame": {"duration": 1300, "redraw": True},
-                                  "fromcurrent": True,
-                                  "transition": {"duration": 500}}]),
-                dict(label="⏸ Pausar", method="animate",
-                     args=[[None], {"frame": {"duration": 0, "redraw": False},
-                                    "mode": "immediate",
-                                    "transition": {"duration": 0}}]),
-            ],
-        )],
-        sliders=[dict(
-            active=0, x=0.1, len=0.9, pad=dict(t=87),
-            currentvalue=dict(prefix="Fallecidos acumulados hasta: "),
-            steps=[dict(label=etq, method="animate",
-                        args=[[etq], {"mode": "immediate",
-                                      "frame": {"duration": 0, "redraw": True},
-                                      "transition": {"duration": 0}}])
-                   for etq in etiquetas],
-        )],
-    )
-    return fig
+    
 
 
 @module.ui
@@ -293,7 +264,7 @@ def evolucion_temporal_ui():
         ui.p("¿Cómo se distribuyeron los fallecimientos por mes y qué perfil tenían los fallecidos en cada mes?"),
         ui.div(
             ui.tags.strong("Qué se puede (y qué no) ver aquí: "),
-            "el conjunto de datos solo trae una fecha, la de fallecimiento (DATE_DIED); no incluye fecha de inicio de síntomas, de ingreso ni de la prueba. Por eso esta pestaña muestra cuándo murieron los pacientes de la muestra, no una curva de contagios. Además, solo 69 de los 1,000 pacientes fallecieron: hay meses con 1 o 4 fallecidos y, si se aplican filtros, los grupos se vuelven aún más pequeños. Los porcentajes de cada mes deben leerse junto con su n (pasa el cursor sobre los gráficos). Sirve para ver el patrón general, no para estimar la evolución real de la epidemia en México.",
+            "el conjunto de datos solo trae una fecha la de fallecimiento (DATE_DIED); no incluye fecha de inicio de síntomas, de ingreso ni de la prueba. Por eso esta pestaña muestra cuándo murieron los pacientes de la muestra, no una curva de contagios. Además, solo 69 de los 1,000 pacientes fallecieron: hay meses con 1 o 4 fallecidos y, si se aplican filtros, los grupos se vuelven aún más pequeños. Sirve para ver el patrón general, no para estimar la evolución real de la epidemia en México.",
             class_="alert alert-info",
         ),
         ui.card(
@@ -386,23 +357,6 @@ def evolucion_temporal_ui():
                 class_="text-muted",
             ),
         ),
-        ui.card(
-            ui.card_header("Comorbilidades de los fallecidos mes a mes (gráfico de burbujas animado)"),
-            ui.p(
-                ui.tags.strong("Cómo leerlo: "),
-                "cada burbuja es una comorbilidad y su tamaño es el número de fallecidos que la tienen. Más a la derecha significa que más fallecidos la tienen; más arriba, que esos fallecidos son mayores. Presiona Reproducir, o mueve la barra, para ver cómo cambia el conjunto de fallecidos acumulados mes a mes. Una burbuja puede tener fallecidos con varias comorbilidades a la vez, así que los porcentajes no suman 100%.",
-                class_="text-muted",
-            ),
-            output_widget("burbujas"),
-            ui.p(
-                "Al final, la hipertensión es la comorbilidad más frecuente entre los fallecidos (30 de 69, el 43.5%), seguida de la diabetes (22, 31.9%) y la obesidad (19, 27.5%). La obesidad parte muy alta en los primeros meses (1 de 1 en marzo, 3 de 5 en abril), pero con tan pocos fallecidos esos valores se mueven mucho por azar. Las demás comorbilidades tienen entre 1 y 6 casos y el asma no aparece, así que sus burbujas son diminutas o no se ven.",
-                class_="text-muted",
-            ),
-        ),
-        ui.p(
-            "Fuente: datos abiertos de casos de COVID-19 de la Secretaría de Salud de México (2020), obtenidos de Kaggle; muestra aleatoria estratificada de 1,000 registros. Fallecido = paciente con fecha de fallecimiento real.",
-            class_="text-muted small",
-        ),
     )
 
 
@@ -485,9 +439,4 @@ def evolucion_temporal_server(input, output, session, datos):
             return _figura_vacia()
         return _fig_perfil(df, meses, input.indicador())
 
-    @render_widget
-    def burbujas():
-        df = fall_filtrados()
-        if len(df) == 0:
-            return _figura_vacia()
-        return _fig_burbujas(df, meses)
+    
