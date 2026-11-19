@@ -406,3 +406,88 @@ def evolucion_temporal_ui():
     )
 
 
+@module.server
+def evolucion_temporal_server(input, output, session, datos):
+
+    # Solo los fallecidos tienen fecha; en el resto DATE_DIED es "9999-99-99"
+    base = datos.copy()
+    base["FECHA"] = pd.to_datetime(
+        base["DATE_DIED"].where(base["FALLECIDO"] == 1), errors="coerce"
+    )
+    base["MES"] = base["FECHA"].dt.to_period("M").dt.start_time
+    base["N_COMORB"] = sum((base[c] == 1).astype(int) for c in COMORBILIDADES)
+    base["N_COMORB_CAT"] = base["N_COMORB"].map(lambda n: "3 o más" if n >= 3 else str(n))
+    fallecidos = base[base["FECHA"].notna()].copy()
+
+    # Los meses del eje son siempre los de toda la muestra, aunque haya filtros
+    meses = pd.date_range(fallecidos["MES"].min(), fallecidos["MES"].max(), freq="MS")
+
+    @reactive.calc
+    def fall_filtrados():
+        df = fallecidos
+        if input.sexo() != "Todos":
+            df = df[df["SEXO"] == input.sexo()]
+        if input.tipo() != "Todos":
+            df = df[df["TIPO_PACIENTE"] == input.tipo()]
+        if input.prueba() != "Todos":
+            df = df[df["PRUEBA"] == input.prueba()]
+        df = df[df["GRUPO_EDAD"].isin(list(input.edades()))]
+        elegidas = list(input.comorb())
+        if elegidas:
+            marcadas = df[elegidas] == 1
+            df = df[marcadas.all(axis=1) if input.modo_comorb() == "todas" else marcadas.any(axis=1)]
+        return df
+
+    @render.text
+    def n_fall():
+        return f"{len(fall_filtrados()):,}"
+
+    @render.text
+    def mes_pico():
+        df = fall_filtrados()
+        if len(df) == 0:
+            return "—"
+        conteo = df["MES"].value_counts().sort_index()
+        mes = conteo.idxmax()
+        return f"{_etiqueta_mes(mes)} ({conteo.max()})"
+
+    @render.text
+    def edad_mediana():
+        df = fall_filtrados()
+        return f"{df['AGE'].median():.0f} años" if len(df) else "—"
+
+    @render.text
+    def n_comorb():
+        df = fall_filtrados()
+        if len(df) == 0:
+            return "—"
+        n = int((df["N_COMORB"] > 0).sum())
+        return f"{n:,} ({n / len(df):.1%})"
+
+    @render_widget
+    def serie():
+        df = fall_filtrados()
+        if len(df) == 0:
+            return _figura_vacia()
+        return _fig_serie(df, input.periodo())
+
+    @render_widget
+    def apiladas():
+        df = fall_filtrados()
+        if len(df) == 0:
+            return _figura_vacia()
+        return _fig_apiladas(df, meses, input.apilar(), input.como())
+
+    @render_widget
+    def perfil():
+        df = fall_filtrados()
+        if len(df) == 0:
+            return _figura_vacia()
+        return _fig_perfil(df, meses, input.indicador())
+
+    @render_widget
+    def burbujas():
+        df = fall_filtrados()
+        if len(df) == 0:
+            return _figura_vacia()
+        return _fig_burbujas(df, meses)
