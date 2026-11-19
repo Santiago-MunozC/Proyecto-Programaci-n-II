@@ -218,40 +218,7 @@ def _fig_perfil(df, meses, clave):
         showlegend=False,
     )
     return fig
-
-
-def _fig_burbujas(df, meses):
-    tabla = _tabla_burbujas(df, meses)
-    if tabla["n"].max() == 0:
-        return _figura_vacia("Ningún fallecido con comorbilidades con los filtros elegidos")
-
-    nombres = list(COMORBILIDADES.values())
-    max_n = int(tabla["n"].max())
-    sizeref = 2 * max_n / (60 ** 2)
-    x_max = float(tabla["pct"].max()) * 1.2 + 5
-    y_min = max(0.0, float(tabla["edad"].min()) - 10)
-    y_max = float(tabla["edad"].max()) + 10
-
-    def trazo(mes):
-        sub = tabla[tabla["MES"] == mes].set_index("comorbilidad").reindex(nombres)
-        return go.Scatter(
-            x=sub["pct"], y=sub["edad"], mode="markers+text",
-            text=[nombre if n > 0 else "" for nombre, n in zip(nombres, sub["n"])],
-            textposition="top center",
-            marker=dict(size=sub["n"], sizemode="area", sizeref=sizeref,
-                        color=PALETA, line=dict(width=1, color="white")),
-            customdata=list(zip(sub["n"], sub["n_total"])),
-            hovertemplate="<b>%{text}</b><br>%{customdata[0]} de %{customdata[1]} fallecidos"
-                          "<br>%{x:.1f}% de los fallecidos<br>Edad mediana: %{y:.0f} años<extra></extra>",
-        )
-
-    etiquetas = [_etiqueta_mes(m) for m in meses]
-    frames = [go.Frame(name=etq, data=[trazo(m)]) for m, etq in zip(meses, etiquetas)]
     fig = go.Figure(data=[trazo(meses[0])], frames=frames)
-
-    
-    )
-    
 
 
 @module.ui
