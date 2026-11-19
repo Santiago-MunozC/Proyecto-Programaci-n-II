@@ -249,10 +249,7 @@ def _fig_burbujas(df, meses):
     frames = [go.Frame(name=etq, data=[trazo(m)]) for m, etq in zip(meses, etiquetas)]
     fig = go.Figure(data=[trazo(meses[0])], frames=frames)
 
-    fig.add_annotation(
-        xref="paper", yref="paper", x=1, y=1.08, xanchor="right", showarrow=False,
-        text="Tamaño de la burbuja = número de fallecidos con esa comorbilidad",
-        font=dict(size=11, color="gray"),
+    
     )
     
 
@@ -263,8 +260,8 @@ def evolucion_temporal_ui():
         ui.h4("4. Evolución temporal"),
         ui.p("¿Cómo se distribuyeron los fallecimientos por mes y qué perfil tenían los fallecidos en cada mes?"),
         ui.div(
-            ui.tags.strong("Qué se puede (y qué no) ver aquí: "),
-            "el conjunto de datos solo trae una fecha la de fallecimiento (DATE_DIED); no incluye fecha de inicio de síntomas, de ingreso ni de la prueba. Por eso esta pestaña muestra cuándo murieron los pacientes de la muestra, no una curva de contagios. Además, solo 69 de los 1,000 pacientes fallecieron: hay meses con 1 o 4 fallecidos y, si se aplican filtros, los grupos se vuelven aún más pequeños. Sirve para ver el patrón general, no para estimar la evolución real de la epidemia en México.",
+            ui.tags.strong("Contexto de los datos"),
+            "el conjunto de datos solo trae la fecha de fallecimiento (DATE_DIED); no incluye fecha de inicio de síntomas, de ingreso ni de la prueba. Por eso esta pestaña muestra cuándo murieron los pacientes de la muestra, no una curva de contagios. Además, solo 69 de los 1,000 pacientes fallecieron: hay meses con 1 o 4 fallecidos y, si se aplican filtros, los grupos se vuelven aún más pequeños. Sirve para ver el patrón general, no para estimar la evolución real de la epidemia en México.",
             class_="alert alert-info",
         ),
         ui.card(
