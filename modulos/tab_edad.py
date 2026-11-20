@@ -1,9 +1,10 @@
 # modulos/tab_edad.py
 import plotly.express as px
+import pandas as pd 
 from shiny import module, reactive, ui
 from shinywidgets import output_widget, render_widget
 
-from modulos.datos import ETIQUETAS_EDAD
+from modulos.datos import ETIQUETAS_EDAD, COMORBILIDADES
 
 
 @module.ui
@@ -51,6 +52,18 @@ def edad_ui():
                 class_="text-muted",
             ),
         ),
+        ui.card(
+            ui.card_header("% de fallecidos con y sin cada comorbilidad"),
+            output_widget("barras_comorbilidad"),
+            ui.p(
+                "Las comorbilidades están ordenadas por la diferencia en puntos "
+                "porcentuales entre quienes la tienen y quienes no. Cada barra "
+                "muestra el porcentaje y, entre paréntesis, los fallecidos sobre "
+                "el total del grupo. Las comorbilidades poco frecuentes dan "
+                "porcentajes poco estables.",
+                class_="text-muted",
+            ),
+        ),   
     )
 
 
@@ -108,4 +121,51 @@ def edad_server(input, output, session, datos):
         )
         fig.update_traces(textposition="outside", cliponaxis=False)
         fig.update_yaxes(range=[0, max(tabla["porcentaje"].max() * 1.3, 5)])
+        return fig
+
+    # Gráfico 3 (prescencia de comorbilidades)
+    @render_widget
+    def barras_comorbilidad():
+        df = datos_filtrados()
+
+        # Tabla larga, una fila por cmorbilidad, con y sin
+        filas = []
+        for col, nombre in COMORBILIDADES.items():      
+            for valor, grupo in [(1, "Con"), (2, "Sin")]: 
+                sub = df[df[col] == valor]              
+                filas.append({
+                    "Comorbilidad": nombre,
+                    "Grupo": grupo,
+                    "fallecidos": int(sub["FALLECIDO"].sum()),
+                    "total": len(sub),
+                })
+        tabla = pd.DataFrame(filas)
+
+        # Porcentaje cuidando la división entre 0
+        tabla["porcentaje"] = (
+            tabla["fallecidos"] / tabla["total"].where(tabla["total"] > 0) * 100
+        ).fillna(0)
+        tabla["texto"] = tabla.apply(
+            lambda f: f"{f['porcentaje']:.1f}% ({f['fallecidos']} de {f['total']})",
+            axis=1,
+        )
+
+        # Diferencia en puntos porcentuales (Con - Sin).
+        # pivot pone "Con" y "Sin" en columnas para poder restarlas.
+        ancho = tabla.pivot(index="Comorbilidad", columns="Grupo", values="porcentaje")
+        orden = (ancho["Con"] - ancho["Sin"]).sort_values(ascending=False).index.tolist()
+        # sort_values() va de menor a mayor y plotly dibuja la primera categoría abajo, por lo que la mayor diferencia queda arriba
+
+        # Barras agrupadas
+        fig = px.bar(
+            tabla,
+            y="Comorbilidad", x="porcentaje", color="Grupo",
+            orientation="h", barmode="group", text="texto",
+            category_orders={"Comorbilidad": orden, "Grupo": ["Sin", "Con"]},
+            color_discrete_map={"Con": "#EF553B", "Sin": "#636EFA"},
+            labels={"porcentaje": "% de fallecidos", "Comorbilidad": ""},
+        )
+        fig.update_traces(textposition="outside", cliponaxis=False)
+        fig.update_xaxes(range=[0, max(tabla["porcentaje"].max() * 1.5, 5)])
+        fig.update_layout(height=650, legend_title_text="Comorbilidad")
         return fig
