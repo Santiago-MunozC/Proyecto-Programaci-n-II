@@ -1,10 +1,11 @@
 # modulos/tab_edad.py
+import pandas as pd
 import plotly.express as px
-import pandas as pd 
+import plotly.graph_objects as go
 from shiny import module, reactive, ui
 from shinywidgets import output_widget, render_widget
 
-from modulos.datos import ETIQUETAS_EDAD, COMORBILIDADES
+from modulos.datos import COMORBILIDADES, ETIQUETAS_EDAD
 
 
 @module.ui
@@ -75,7 +76,23 @@ def edad_ui():
                 "porcentajes poco estables.",
                 class_="text-muted",
             ),
-        ),   
+        ), 
+        ui.card(
+            ui.card_header("Mapa de calor: % de fallecidos por comorbilidad y grupo de edad"),
+            ui.input_slider(
+                "min_n", "Mínimo de pacientes por celda",
+                min=1, max=30, value=10,
+            ),
+            output_widget("mapa_calor"),
+            ui.p(
+                "Cada celda muestra el porcentaje de fallecidos entre los pacientes "
+                "que tienen esa comorbilidad y están en ese grupo de edad, y entre "
+                "paréntesis los fallecidos sobre el total de la celda. Las celdas "
+                "grises tienen menos pacientes que el mínimo elegido y sus "
+                "porcentajes no son confiables.",
+                class_="text-muted",
+            ),
+        ),  
     )
 
 
@@ -223,4 +240,57 @@ def edad_server(input, output, session, datos):
         )
         fig.update_traces(textposition="outside", cliponaxis=False)
         fig.update_yaxes(range=[0, max(tabla["porcentaje"].max() * 1.3, 5)])
+        return fig
+    
+    # Gráfico 5 (mapa de calor comorbilidad x grupo de edad)
+    @render_widget
+    def mapa_calor():
+        df = datos_filtrados()
+        minimo = input.min_n()          # slider
+
+        # Tres matrices una fila por comorbilidad una columna por grupo de edad.
+        z, texto, custom = [], [], []
+        for col in COMORBILIDADES:
+            fila_z, fila_t, fila_c = [], [], []
+            for grupo in ETIQUETAS_EDAD:
+                # Pacientes que TIENEN esa comorbilidad y están en ese grupo de edad
+                sub = df[(df[col] == 1) & (df["GRUPO_EDAD"] == grupo)]
+                n = len(sub)
+                f = int(sub["FALLECIDO"].sum())
+                if n >= minimo:
+                    pct = f / n * 100
+                    fila_z.append(pct)                         
+                    fila_t.append(f"{pct:.0f}%<br>({f} de {n})") 
+                else:
+                    fila_z.append(None)    # celda vacía se verá gris
+                    fila_t.append("")
+                fila_c.append([f, n])      
+            z.append(fila_z)
+            texto.append(fila_t)
+            custom.append(fila_c)
+
+        fig = go.Figure(
+            go.Heatmap(
+                z=z,
+                x=ETIQUETAS_EDAD,
+                y=list(COMORBILIDADES.values()),
+                text=texto,
+                texttemplate="%{text}",     
+                customdata=custom,
+                hovertemplate=(
+                    "%{y}<br>Edad: %{x}"
+                    "<br>% de fallecidos: %{z:.1f}%"
+                    "<br>%{customdata[0]} de %{customdata[1]} pacientes"
+                    "<extra></extra>"
+                ),
+                colorscale="Reds",
+                zmin=0,                       # 0% siempre es el color más claro
+                colorbar={"title": "% fallecidos"},
+                hoverongaps=False,
+                xgap=2, ygap=2,              
+            )
+        )
+        fig.update_yaxes(autorange="reversed")      # La primera comorbilidad arriba
+        fig.update_xaxes(title="Grupo de edad")
+        fig.update_layout(height=600, plot_bgcolor="#D9D9D9") 
         return fig
