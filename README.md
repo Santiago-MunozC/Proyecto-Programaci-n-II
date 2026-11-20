@@ -3,7 +3,11 @@
 Aplicación web hecha con **Shiny para Python** que permite explorar qué factores (demográficos, de atención médica y comorbilidades) se asocian con el fallecimiento de pacientes con sospecha o diagnóstico de COVID-19 en México durante 2020.
 
 Proyecto XS-0130 Programación para Estadística II, Escuela de Estadística, UCR.
-Autores: Dariana Calderón Sáenz, Santiago Muñoz Córdoba & Celeste Salazar.
+
+**Autores:**
+- Dariana Calderón Sáenz — Carnet: C5D485
+- Santiago Muñoz Córdoba — Carnet: C5H708
+- María Celeste Salazar Salas — Carnet: C5J564
 
 ## Datos
 
