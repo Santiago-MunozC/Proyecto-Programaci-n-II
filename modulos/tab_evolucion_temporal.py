@@ -2,7 +2,7 @@ import pandas as pd
 from shiny import module, reactive, render, ui
 from shinywidgets import output_widget, render_widget
 import plotly.graph_objects as go
-from modulos.datos import COMORBILIDADES, ETIQUETAS_EDAD
+from modulos.datos import ETIQUETAS_EDAD
 
 AZUL = "#636EFA"
 ROJO = "#EF553B"
@@ -20,14 +20,12 @@ APILAR = {
     "TIPO_PACIENTE": "Tipo de paciente",
     "SEXO": "Sexo",
     "PRUEBA": "Resultado de la prueba",
-    "N_COMORB_CAT": "Número de comorbilidades",
 }
 CATEGORIAS = {
     "GRUPO_EDAD": ETIQUETAS_EDAD,
     "TIPO_PACIENTE": ["Ambulatorio", "Hospitalizado"],
     "SEXO": ["Hombre", "Mujer"],
     "PRUEBA": ["Positivo", "No positivo"],
-    "N_COMORB_CAT": ["0", "1", "2", "3 o más"],
 }
 
 COLORES = {
@@ -35,13 +33,11 @@ COLORES = {
     "TIPO_PACIENTE": [AZUL, ROJO],
     "SEXO": [AZUL, ROJO],
     "PRUEBA": [ROJO, AZUL],
-    "N_COMORB_CAT": PALETA[:4],
 }
 
 INDICADORES = {
     "edad": "Edad mediana (años)",
     "hombres": "% de hombres",
-    "comorb": "% con al menos una comorbilidad",
     "hosp": "% hospitalizados",
     "positivo": "% con prueba positiva",
 }
@@ -49,9 +45,6 @@ INDICADORES = {
 
 def _etiqueta_mes(f):
     return f"{MESES[f.month]} {f.year}"
-
-def _fecha_corta(f):
-    return f"{f.day} {MESES[f.month]} {f.year}"
 
 def _valor(sub, clave):
     """Valor de un indicador para un grupo de fallecidos (None si el grupo está vacío)."""
@@ -61,8 +54,6 @@ def _valor(sub, clave):
         return float(sub["AGE"].median())
     if clave == "hombres":
         return float((sub["SEXO"] == "Hombre").mean() * 100)
-    if clave == "comorb":
-        return float((sub["N_COMORB"] > 0).mean() * 100)
     if clave == "hosp":
         return float((sub["TIPO_PACIENTE"] == "Hospitalizado").mean() * 100)
     return float((sub["PRUEBA"] == "Positivo").mean() * 100)  # positivo
@@ -73,22 +64,6 @@ def _indicador_por_mes(df, meses, clave):
     for m in meses:
         sub = df[df["MES"] == m]
         filas.append({"MES": m, "n": len(sub), "valor": _valor(sub, clave)})
-    return pd.DataFrame(filas)
-
-def _tabla_burbujas(df, meses):
-    """Una fila por mes y comorbilidad, con los fallecidos acumulados hasta ese mes."""
-    filas = []
-    for m in meses:
-        acum = df[df["MES"] <= m]
-        n_total = len(acum)
-        for columna, nombre in COMORBILIDADES.items():
-            sub = acum[acum[columna] == 1]
-            n = len(sub)
-            filas.append({
-                "MES": m, "comorbilidad": nombre, "n": n, "n_total": n_total,
-                "pct": n / n_total * 100 if n else None,
-                "edad": float(sub["AGE"].median()) if n else None,
-            })
     return pd.DataFrame(filas)
 
 def _tabla_apilada(df, meses, variable):
@@ -218,16 +193,15 @@ def _fig_perfil(df, meses, clave):
         showlegend=False,
     )
     return fig
-    fig = go.Figure(data=[trazo(meses[0])], frames=frames)
 
 
 @module.ui
 def evolucion_temporal_ui():
     return ui.div(
         ui.h4("4. Evolución temporal"),
-        ui.p("¿Cómo se distribuyeron los fallecimientos por mes y qué perfil tenían los fallecidos en cada mes?"),
+        ui.p("¿Cómo se distribuyeron los fallecimientos y qué perfil tenían en cada mes?"),
         ui.div(
-            ui.tags.strong("Contexto de los datos"),
+            ui.tags.strong("Contexto de los datos: "),
             "el conjunto de datos solo trae la fecha de fallecimiento (DATE_DIED); no incluye fecha de inicio de síntomas, de ingreso ni de la prueba. Por eso esta pestaña muestra cuándo murieron los pacientes de la muestra, no una curva de contagios. Además, solo 69 de los 1,000 pacientes fallecieron: hay meses con 1 o 4 fallecidos y, si se aplican filtros, los grupos se vuelven aún más pequeños. Sirve para ver el patrón general, no para estimar la evolución real de la epidemia en México.",
             class_="alert alert-info",
         ),
@@ -248,15 +222,6 @@ def evolucion_temporal_ui():
                 "edades", "Grupo de edad",
                 ETIQUETAS_EDAD, selected=ETIQUETAS_EDAD, inline=True,
             ),
-            ui.input_checkbox_group(
-                "comorb", "Comorbilidades (sin marcar ninguna, no se filtra)",
-                COMORBILIDADES, inline=True,
-            ),
-            ui.input_radio_buttons(
-                "modo_comorb", "Con las comorbilidades marcadas, mostrar fallecidos que tengan",
-                {"cualquiera": "al menos una de ellas", "todas": "todas ellas"},
-                inline=True,
-            ),
             ui.p(
                 "Los filtros actualizan las tarjetas y los gráficos. Los comentarios en gris describen la muestra completa.",
                 class_="text-muted",
@@ -266,7 +231,7 @@ def evolucion_temporal_ui():
             ui.value_box("Fallecidos", ui.output_text("n_fall")),
             ui.value_box("Mes con más fallecimientos", ui.output_text("mes_pico")),
             ui.value_box("Edad mediana", ui.output_text("edad_mediana")),
-            ui.value_box("Con alguna comorbilidad", ui.output_text("n_comorb")),
+            ui.value_box("Hospitalizados", ui.output_text("n_hosp")),
             fill=False,
         ),
         ui.card(
@@ -277,7 +242,7 @@ def evolucion_temporal_ui():
             ),
             ui.p(
                 ui.tags.strong("Cómo leerlo: "),
-                "las barras rojas son los fallecimientos de cada periodo; la línea azul suma todos los anteriores (eje derecho). La flecha marca el periodo con más fallecimientos.",
+                "las barras rojas son los fallecimientos de cada periodo; la línea azul suma todos los anteriores. La flecha marca el periodo con más fallecimientos.",
                 class_="text-muted",
             ),
             output_widget("serie"),
@@ -317,8 +282,8 @@ def evolucion_temporal_ui():
             ),
             output_widget("perfil"),
             ui.p(
-                "El tamaño de cada punto es proporcional al número de fallecidos del mes. En los tres meses con más casos el perfil es parecido: la edad mediana es de 63 años en mayo, 58.5 en junio y 65 en julio, y el porcentaje con al menos una comorbilidad es de 70%, 72.7% y 75%. En el total, 50 de los 69 fallecidos (72.5%) tenían alguna comorbilidad. Los puntos de marzo, agosto y septiembre (1 fallecido) y abril (4) no permiten comparar.",
-                class_="text-muted",
+                 "El tamaño de cada punto es proporcional al número de fallecidos del mes. En los tres meses con más casos el perfil es parecido: la edad mediana es de 63 años en mayo, 58.5 en junio y 65 en julio, y el porcentaje de hombres es de 60%, 77.3% y 60%. Lo que más cambia es el porcentaje con prueba positiva: 50% en mayo, 54.5% en junio y 85% en julio (65.2% en todos los meses); la categoría No positivo incluye resultados negativos y no concluyentes. Los puntos de marzo, agosto y septiembre (1 fallecido) y abril (4) no permiten comparar.",
+                 class_="text-muted",
             ),
         ),
     )
@@ -333,8 +298,6 @@ def evolucion_temporal_server(input, output, session, datos):
         base["DATE_DIED"].where(base["FALLECIDO"] == 1), errors="coerce"
     )
     base["MES"] = base["FECHA"].dt.to_period("M").dt.start_time
-    base["N_COMORB"] = sum((base[c] == 1).astype(int) for c in COMORBILIDADES)
-    base["N_COMORB_CAT"] = base["N_COMORB"].map(lambda n: "3 o más" if n >= 3 else str(n))
     fallecidos = base[base["FECHA"].notna()].copy()
 
     # Los meses del eje son siempre los de toda la muestra, aunque haya filtros
@@ -350,10 +313,6 @@ def evolucion_temporal_server(input, output, session, datos):
         if input.prueba() != "Todos":
             df = df[df["PRUEBA"] == input.prueba()]
         df = df[df["GRUPO_EDAD"].isin(list(input.edades()))]
-        elegidas = list(input.comorb())
-        if elegidas:
-            marcadas = df[elegidas] == 1
-            df = df[marcadas.all(axis=1) if input.modo_comorb() == "todas" else marcadas.any(axis=1)]
         return df
 
     @render.text
@@ -375,11 +334,11 @@ def evolucion_temporal_server(input, output, session, datos):
         return f"{df['AGE'].median():.0f} años" if len(df) else "—"
 
     @render.text
-    def n_comorb():
+    def n_hosp():
         df = fall_filtrados()
         if len(df) == 0:
             return "—"
-        n = int((df["N_COMORB"] > 0).sum())
+        n = int((df["TIPO_PACIENTE"] == "Hospitalizado").sum())
         return f"{n:,} ({n / len(df):.1%})"
 
     @render_widget
