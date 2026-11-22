@@ -201,7 +201,7 @@ def evolucion_temporal_ui():
         ui.h4("4. Evolución temporal"),
         ui.p("¿Cómo se distribuyeron los fallecimientos y qué perfil tenían en cada mes?"),
         ui.div(
-            ui.tags.strong("Contexto de los datos: "),
+            ui.tags.strong("Sobre la muestra: "),
             "el conjunto de datos solo trae la fecha de fallecimiento (DATE_DIED); no incluye fecha de inicio de síntomas, de ingreso ni de la prueba. Por eso esta pestaña muestra cuándo murieron los pacientes de la muestra, no una curva de contagios. Además, solo 69 de los 1,000 pacientes fallecieron: hay meses con 1 o 4 fallecidos y, si se aplican filtros, los grupos se vuelven aún más pequeños. Sirve para ver el patrón general, no para estimar la evolución real de la epidemia en México.",
             class_="alert alert-info",
         ),
@@ -240,14 +240,10 @@ def evolucion_temporal_ui():
                 "periodo", "Agrupar por",
                 {"mes": "Mes", "semana": "Semana"}, inline=True,
             ),
-            ui.p(
-                ui.tags.strong("Cómo leerlo: "),
-                "las barras rojas son los fallecimientos de cada periodo; la línea azul suma todos los anteriores. La flecha marca el periodo con más fallecimientos.",
-                class_="text-muted",
-            ),
             output_widget("serie"),
             ui.p(
                 "Los 69 fallecimientos de la muestra ocurren entre el 26 de marzo y el 3 de septiembre de 2020, pero casi todos se concentran en tres meses: 20 en mayo, 22 en junio y 20 en julio (62 de 69, el 89.9%). Antes hay solo 5 (1 en marzo y 4 en abril) y después solo 2 (1 en agosto y 1 en septiembre). Al agrupar por semana el patrón es irregular; la semana con más fallecimientos es la del 8 de junio, con 11.",
+                "Las barras rojas son los fallecimientos de cada periodo; la línea azul suma todos los anteriores. La flecha marca el periodo con más fallecimientos.",
                 class_="text-muted",
             ),
         ),
@@ -261,28 +257,20 @@ def evolucion_temporal_ui():
                     inline=True,
                 ),
             ),
-            ui.p(
-                ui.tags.strong("Cómo leerlo: "),
-                "cada barra es un mes y sus colores muestran cómo se reparten los fallecidos de ese mes. El n sobre la barra es el total de fallecidos del mes: en Porcentaje, cada barra suma 100% sin importar cuántos casos tenga.",
-                class_="text-muted",
-            ),
             output_widget("apiladas"),
             ui.p(
                 "Casi todos los fallecidos estaban hospitalizados (65 de 69, el 94.2%); solo 4 fueron ambulatorios (1 en junio, 2 en julio y 1 en septiembre). Junio es el mes con más hombres (17 de 22, el 77.3%), mientras que en mayo y julio son 12 de 20 (60%). Entre los fallecidos de julio, 17 de 20 (85%) dieron positivo, frente a 50% en mayo y 54.5% en junio; la categoría No positivo incluye resultados negativos y no concluyentes. En el porcentaje, marzo, agosto y septiembre (1 fallecido cada uno) dan barras de 0% o 100% que no significan nada.",
+                "Cada barra es un mes y sus colores muestran cómo se reparten los fallecidos de ese mes. El n sobre la barra es el total de fallecidos del mes: en Porcentaje, cada barra suma 100% sin importar cuántos casos tenga.",
                 class_="text-muted",
             ),
         ),
         ui.card(
             ui.card_header("¿Cambió el perfil de un mes a otro? (puntos con líneas)"),
             ui.input_select("indicador", "Indicador", INDICADORES),
-            ui.p(
-                ui.tags.strong("Cómo leerlo: "),
-                "cada punto resume a los fallecidos de un mes con el indicador elegido. La línea punteada es el valor de todos los meses juntos, para comparar si un mes está por encima o por debajo. Los puntos grises tienen menos de 5 fallecidos.",
-                class_="text-muted",
-            ),
             output_widget("perfil"),
             ui.p(
                  "El tamaño de cada punto es proporcional al número de fallecidos del mes. En los tres meses con más casos el perfil es parecido: la edad mediana es de 63 años en mayo, 58.5 en junio y 65 en julio, y el porcentaje de hombres es de 60%, 77.3% y 60%. Lo que más cambia es el porcentaje con prueba positiva: 50% en mayo, 54.5% en junio y 85% en julio (65.2% en todos los meses); la categoría No positivo incluye resultados negativos y no concluyentes. Los puntos de marzo, agosto y septiembre (1 fallecido) y abril (4) no permiten comparar.",
+                 "Cada punto resume a los fallecidos de un mes con el indicador elegido. La línea punteada es el valor de todos los meses juntos, para comparar si un mes está por encima o por debajo. Los puntos grises tienen menos de 5 fallecidos.",
                  class_="text-muted",
             ),
         ),
